@@ -32,6 +32,8 @@ from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, \
 #-----------------------------------------------------#
 #                    Configurations                   #
 #-----------------------------------------------------#
+os.environ["CUDA_VISIBLE_DEVICES"] = str(0)
+
 # Data directory
 path_data = "data/covid.prepared"
 
@@ -83,7 +85,7 @@ sf_zscore = Normalization(mode="z-score")
 sf = [sf_resize, sf_zscore]
 
 # Create and configure the Preprocessor class
-pp = Preprocessor(data_io, data_aug=data_aug, batch_size=2, subfunctions=sf,
+pp = Preprocessor(data_io, data_aug=data_aug, batch_size=24, subfunctions=sf,
                   prepare_subfunctions=True, prepare_batches=False,
                   analysis="fullimage")
 
@@ -119,15 +121,21 @@ model.train(train, epochs=1000, iterations=None,
 # Dump latest model to disk
 model.dump(os.path.join(path_models, "model.latest.hdf5"))
 
-# #-----------------------------------------------------#
-# #           Inference for provided CV Fold            #
-# #-----------------------------------------------------#
-# # Load best model weights during fitting
-# model.load(os.path.join(fold_subdir, "model.best.hdf5"))
-#
-# # Obtain training and validation data set
-# training, validation = load_disk2fold(os.path.join(fold_subdir,
-#                                                    "sample_list.json"))
-#
-# # Compute predictions
-# model.predict(validation, return_output=False)
+#-----------------------------------------------------#
+#                Run Inference Pipeline               #
+#-----------------------------------------------------#
+# Compute predictions for first model
+model.preprocessor.data_io = Data_IO(interface, input_path=path_data,
+                                     delete_batchDir=False,
+                                     output_path=os.path.join(path_results,
+                                                              "first"))
+model.load(os.path.join(path_models, "model.1.hdf5"))
+model.predict(test, return_output=False)
+
+# Compute predictions for final model
+model.preprocessor.data_io = Data_IO(interface, input_path=path_data,
+                                     delete_batchDir=False,
+                                     output_path=os.path.join(path_results,
+                                                              "final"))
+model.load(os.path.join(path_models, "model.latest.hdf5"))
+model.predict(test, return_output=False)
