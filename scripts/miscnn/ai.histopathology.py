@@ -32,18 +32,18 @@ from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, \
 #-----------------------------------------------------#
 #                    Configurations                   #
 #-----------------------------------------------------#
-os.environ["CUDA_VISIBLE_DEVICES"] = str(0)
+os.environ["CUDA_VISIBLE_DEVICES"] = str(2)
 
 # Data directory
-path_data = "data/covid.prepared"
+path_data = "data/histopathology.prepared"
 
 # model directory
-path_models = "models/covid"
+path_models = "models/histopathology"
 if not os.path.exists("models") : os.mkdir("models")
 if not os.path.exists(path_models) : os.mkdir(path_models)
 
 # prediction directory
-path_results = "results/covid"
+path_results = "results/histopathology"
 if not os.path.exists("results") : os.mkdir("results")
 if not os.path.exists(path_results) : os.mkdir(path_results)
 
@@ -51,8 +51,8 @@ if not os.path.exists(path_results) : os.mkdir(path_results)
 #                       Sampling                      #
 #-----------------------------------------------------#
 # Initialize Data IO Interface for data
-## We are using 4 classes due to [background, lung_left, lung_right, covid-19]
-interface = Image_interface(img_type="grayscale", classes=4)
+## We are using 4 classes due to [background, cancer]
+interface = Image_interface(img_type="rgb", classes=2)
 
 # Create Data IO object to load and write samples in the file structure
 data_io = Data_IO(interface, input_path=path_data, delete_batchDir=False)
