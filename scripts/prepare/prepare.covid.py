@@ -62,6 +62,9 @@ for index in tqdm(os.listdir(path_ds)):
         # Obtain slice
         img_slice = np.take(sample.img_data, slice, axis=2)
         seg_slice = np.take(sample.seg_data, slice, axis=2)
+        # Combine lung left and lung right annotation
+        seg_slice[seg_slice == 2] = 1
+        seg_slice[seg_slice == 3] = 2
         # Store slice on disk
         path_slice = os.path.join(path_ds + ".prepared", index_slice)
         if not os.path.exists(path_slice) : os.mkdir(path_slice)
