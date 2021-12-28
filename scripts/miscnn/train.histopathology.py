@@ -51,7 +51,7 @@ if not os.path.exists(path_results) : os.mkdir(path_results)
 #                       Sampling                      #
 #-----------------------------------------------------#
 # Initialize Data IO Interface for data
-## We are using 4 classes due to [background, cancer]
+## We are using 2 classes due to [background, cell]
 interface = Image_interface(img_type="rgb", classes=2)
 
 # Create Data IO object to load and write samples in the file structure

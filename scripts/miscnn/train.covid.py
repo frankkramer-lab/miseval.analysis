@@ -51,8 +51,8 @@ if not os.path.exists(path_results) : os.mkdir(path_results)
 #                       Sampling                      #
 #-----------------------------------------------------#
 # Initialize Data IO Interface for data
-## We are using 4 classes due to [background, lung_left, lung_right, covid-19]
-interface = Image_interface(img_type="grayscale", classes=4)
+## We are using 3 classes due to [background, lung, covid-19]
+interface = Image_interface(img_type="grayscale", classes=3)
 
 # Create Data IO object to load and write samples in the file structure
 data_io = Data_IO(interface, input_path=path_data, delete_batchDir=False)
