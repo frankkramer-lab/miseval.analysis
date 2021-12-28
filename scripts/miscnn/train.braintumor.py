@@ -112,28 +112,12 @@ callback_list = [cb_lr, cb_es, cb_cl, cb_mc]
 #-----------------------------------------------------#
 #                Run Training Pipeline                #
 #-----------------------------------------------------#
+# Dump starting model to disk
+model.dump(os.path.join(path_models, "model.start.hdf5"))
+
 # Run Training
 model.train(train, epochs=1000, iterations=75,
             callbacks=[cb_lr, cb_es, cb_cl, cb_mc])
 
 # Dump latest model to disk
 model.dump(os.path.join(path_models, "model.latest.hdf5"))
-
-#-----------------------------------------------------#
-#                Run Inference Pipeline               #
-#-----------------------------------------------------#
-# Compute predictions for first model
-model.preprocessor.data_io = Data_IO(interface, input_path=path_data,
-                                     delete_batchDir=False,
-                                     output_path=os.path.join(path_results,
-                                                              "first"))
-model.load(os.path.join(path_models, "model.1.hdf5"))
-model.predict(test, return_output=False)
-
-# Compute predictions for final model
-model.preprocessor.data_io = Data_IO(interface, input_path=path_data,
-                                     delete_batchDir=False,
-                                     output_path=os.path.join(path_results,
-                                                              "final"))
-model.load(os.path.join(path_models, "model.latest.hdf5"))
-model.predict(test, return_output=False)
