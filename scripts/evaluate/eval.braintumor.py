@@ -179,6 +179,8 @@ def visualize_segmentation(img, seg):
     # Resize image to desired resolution
     img_rgb = cv2.resize(img_rgb, (img_size, img_size),
                          interpolation=cv2.INTER_LINEAR)
+    # Rotate braintumor image via 90° clockwise
+    img_rgb = cv2.rotate(img_rgb, rotateCode=0)
     # Return visualized sample as NumPy matrix
     return img_rgb
 
@@ -239,16 +241,17 @@ for index in test:
     # Create artificial no & full annotation predictions
     ap_no = np.full(gt.shape, 0)
     ap_full = np.full(gt.shape, 1)
+    ap_rand = np.random.choice([0,1], (gt.shape))
     # Pack segmentations to a list together
-    seg_list = [gt, ap_no, ap_full, pd_start, pd_first, pd_final]
+    seg_list = [gt, ap_no, ap_full, ap_rand, pd_start, pd_first, pd_final]
 
-    print(index,
-         calc_DSC(gt, gt, 2)[1],
-         calc_DSC(gt, ap_no, 2)[1],
-         calc_DSC(gt, ap_full, 2)[1],
-         calc_DSC(gt, pd_start, 2)[1],
-         calc_DSC(gt, pd_first, 2)[1],
-         calc_DSC(gt, pd_final, 2)[1])
+    # print(index,
+    #      calc_DSC(gt, gt, 2)[1],
+    #      calc_DSC(gt, ap_no, 2)[1],
+    #      calc_DSC(gt, ap_full, 2)[1],
+    #      calc_DSC(gt, ap_rand, 2)[1],
+    #      calc_DSC(gt, pd_first, 2)[1],
+    #      calc_DSC(gt, pd_final, 2)[1])
 
     create_visualization(img, seg_list, index, path_evaluation)
 
