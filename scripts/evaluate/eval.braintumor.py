@@ -29,13 +29,15 @@ from miscnn.neural_network.metrics import tversky_crossentropy, dice_soft, focal
 import numpy as np
 from PIL import Image
 import cv2
+import pandas as pd
 
 #-----------------------------------------------------#
 #                    Configurations                   #
 #-----------------------------------------------------#
 # Desired image resolution for patches
 img_size = 512
-gap = 32
+gap = 8
+border = 8
 
 # Data directory
 path_data = "data/braintumor.prepared"
@@ -168,6 +170,41 @@ def overlay_segmentation(img_rgb, seg):
     # Return final image with segmentation overlay
     return img_overlayed
 
+def rect_with_rounded_corners(img, r, t, c):
+    """
+    Source: https://stackoverflow.com/questions/60382952/how-to-add-a-round-border-around-an-image/60392932#60392932
+    Credits: https://stackoverflow.com/users/7355741/fmw42
+    Slightly modified by me (Dominik Müller, Augsburg, Germany)
+
+    :param image: image as NumPy array
+    :param r: radius of rounded corners
+    :param t: thickness of border
+    :param c: color of border
+    :return: new image as NumPy array with rounded corners
+    """
+    hh, ww = img.shape[0:2]
+    # create white image of size of input
+    white = np.full_like(img, (255,255,255))
+    # add black border of thickness
+    border = cv2.copyMakeBorder(white, t, t, t, t,
+                                borderType=cv2.BORDER_CONSTANT,
+                                value=(0,0,0))
+    # blur image by rounding amount as sigma
+    blur = cv2.GaussianBlur(border, (0,0), r, r)
+    # threshold blurred image
+    thresh1 = cv2.threshold(blur, 128, 255, cv2.THRESH_BINARY)[1]
+    # create thesh2 by eroding thresh1 by 2*t
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2*t,2*t))
+    thresh2 = cv2.morphologyEx(thresh1, cv2.MORPH_ERODE, kernel, iterations=1)
+    # subtract white background with thresholded image to make a border mask
+    mask = white - thresh2[t:hh+t, t:ww+t]
+    # create colored image the same size as input
+    color = np.full_like(img, c)
+    # combine input and color with mask
+    result = cv2.bitwise_and(color, mask) + cv2.bitwise_and(img, 255-mask)
+    # Return image with borders
+    return result
+
 def visualize_segmentation(img, seg):
     # Squeeze image files to remove channel axis
     img = np.squeeze(img, axis=-1)
@@ -179,6 +216,9 @@ def visualize_segmentation(img, seg):
     # Resize image to desired resolution
     img_rgb = cv2.resize(img_rgb, (img_size, img_size),
                          interpolation=cv2.INTER_LINEAR)
+    # Add border to image
+    img_rgb = rect_with_rounded_corners(img_rgb, border, border,
+                                        (255, 255, 255))
     # Rotate braintumor image via 90° clockwise
     img_rgb = cv2.rotate(img_rgb, rotateCode=0)
     # Return visualized sample as NumPy matrix
@@ -193,7 +233,6 @@ def create_visualization(img, seg_list, index, vis_path):
         else : img_list.insert(i, np.full((img_size, gap, 3), 255))
     # Stack images together
     img_stacked = np.hstack((img_list))
-
     # Convert NumPy image matrix to Pillow
     PIL_image = Image.fromarray(img_stacked.astype('uint8'), 'RGB')
     # Set up the output path
@@ -226,7 +265,7 @@ train, test = train_test_split(sample_list, train_size=0.8, test_size=0.2,
 #                      Evaluation                     #
 #-----------------------------------------------------#
 # Initialize some stuff
-scores = []
+dt = []
 
 # Iterate over each sample
 for index in test:
@@ -244,18 +283,25 @@ for index in test:
     ap_rand = np.random.choice([0,1], (gt.shape))
     # Pack segmentations to a list together
     seg_list = [gt, ap_no, ap_full, ap_rand, pd_start, pd_first, pd_final]
-
-    # print(index,
-    #      calc_DSC(gt, gt, 2)[1],
-    #      calc_DSC(gt, ap_no, 2)[1],
-    #      calc_DSC(gt, ap_full, 2)[1],
-    #      calc_DSC(gt, ap_rand, 2)[1],
-    #      calc_DSC(gt, pd_first, 2)[1],
-    #      calc_DSC(gt, pd_final, 2)[1])
-
+    seg_names = ["gt", "ap_no", "ap_full", "ap_rand", "pd_start", "pd_first", "pd_final"]
+    # Compute various scores
+    for i, seg in enumerate(seg_list[1:]):
+        dt.append([index, seg_names[i+1], "DSC", calc_DSC(gt, seg, 2)[1]])
+        dt.append([index, seg_names[i+1], "IoU", calc_IoU(gt, seg, 2)[1]])
+        dt.append([index, seg_names[i+1], "ACC", calc_Accuracy(gt, seg, 2)[1]])
+        dt.append([index, seg_names[i+1], "SPEC", calc_Specificity(gt, seg, 2)[1]])
+        dt.append([index, seg_names[i+1], "SENS", calc_Sensitivity(gt, seg, 2)[1]])
+        dt.append([index, seg_names[i+1], "PREC", calc_Precision(gt, seg, 2)[1]])
+    # Compute visualization
     create_visualization(img, seg_list, index, path_evaluation)
+    break
+
+dt = pd.DataFrame(dt)
+print(dt)
 
 
+# REWORK EVERYTHING WITH ACTIVATION OUTPUTS instead of argmax mask values from predictions
+# In order to implement ROC curves
 
 # what to implement
 # - scores per sample in large csv
