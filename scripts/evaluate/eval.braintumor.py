@@ -353,37 +353,27 @@ for index in tqdm(test):
     path_roc = os.path.join(path_evaluation, "roc")
     create_roc(gt, seg_list_activation, seg_names, index, path_roc)
 
+    break
+
 # Store scores as csv in evaluation directory
 dt = pd.DataFrame(dt, columns=["index", "pred", "metric", "score"])
 out_path = os.path.join(path_evaluation, "scores.csv")
 dt.to_csv(out_path, sep=",", header=True, index=False)
 
-# Plot global figures
+##### to-do
+# Add distance score
+# kick out start pred?
 
-
-
-
-    # # Combine images
-    # top = np.hstack((inner_cache[0][2], np.full((ss,gap,3), 255),
-    #                  inner_cache[1][2]))
-    # down = np.hstack((inner_cache[2][2], np.full((ss,gap,3), 255),
-    #                   inner_cache[3][2]))
-    # final = np.vstack((np.full((30,ss*2+gap,3), 255), top,
-    #                    np.full((gap,ss*2+gap,3), 255), down))
-    # final = final.astype(np.uint8)
-    #
-    # # Add text labels
-    # img = Image.fromarray(final)
-    # draw = ImageDraw.Draw(img)
-    # font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf", 18)
-    # # Add classifications
-    # draw.text((2, 32), inner_cache[0][1], (173,255,47), font=font)
-    # draw.text((2+ss+gap, 32), inner_cache[1][1], (173,255,47), font=font)
-    # draw.text((2, 32+ss+gap), inner_cache[2][1], (173,255,47), font=font)
-    # draw.text((2+ss+gap, 32+ss+gap), inner_cache[3][1], (173,255,47), font=font)
-    # # Add dataset header on top
-    # draw.text((((ss*2+gap)/2)-20, 2), ds.upper(), (0,0,0), font=font)
-    #
-    # # Convert back to NumPy and store
-    # mat = np.array(img)
-    # outer_cache.append(mat)
+fig = (ggplot(dt, aes("pred", "score", fill="pred"))
+              + geom_boxplot(show_legend=False)
+              + ggtitle("Performance on dataset: Braintumor")
+              + facet_wrap("metric")
+              + xlab("Metric")
+              + ylab("Score")
+              + coord_flip()
+              + scale_y_continuous(limits=[0, 1], breaks=np.arange(0.0,1.1,0.1))
+              + scale_fill_discrete(name="Classification")
+              + theme_bw(base_size=28))
+# Store figure to disk
+fig.save(filename="performance.png", path=path_evaluation,
+         width=24, height=10, dpi=180)
