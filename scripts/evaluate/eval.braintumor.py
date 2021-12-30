@@ -30,6 +30,9 @@ import numpy as np
 from PIL import Image
 import cv2
 import pandas as pd
+from tqdm import tqdm
+from sklearn.metrics import roc_curve
+from plotnine import *
 
 #-----------------------------------------------------#
 #                    Configurations                   #
@@ -38,6 +41,9 @@ import pandas as pd
 img_size = 512
 gap = 8
 border = 8
+
+# ROC curves
+rounding_precision = 3
 
 # Data directory
 path_data = "data/braintumor.prepared"
@@ -126,7 +132,7 @@ def calc_Accuracy(truth, pred, classes):
             not_pd = np.logical_not(np.equal(pred, i))
             # Calculate accuracy
             acc = (np.logical_and(pd, gt).sum() + \
-                   np.logical_and(not_pd, not_gt).sum()) /  gt.size
+                   np.logical_and(not_pd, not_gt).sum()) / gt.size
             acc_scores.append(acc)
         except ZeroDivisionError:
             acc_scores.append(0.0)
@@ -137,14 +143,13 @@ def calc_Precision(truth, pred, classes):
     prec_scores = []
     # Iterate over each class
     for i in range(classes):
-        try:
-            gt = np.equal(truth, i)
-            pd = np.equal(pred, i)
-            # Calculate precision
+        gt = np.equal(truth, i)
+        pd = np.equal(pred, i)
+        # Calculate precision
+        if pd.sum() == 0.0 : prec_scores.append(0.0)
+        else:
             prec = np.logical_and(pd, gt).sum() / pd.sum()
             prec_scores.append(prec)
-        except ZeroDivisionError:
-            prec_scores.append(0.0)
     # Return computed precision scores
     return prec_scores
 
@@ -236,12 +241,50 @@ def create_visualization(img, seg_list, index, vis_path):
     # Convert NumPy image matrix to Pillow
     PIL_image = Image.fromarray(img_stacked.astype('uint8'), 'RGB')
     # Set up the output path
-    if not os.path.exists(vis_path):
-        os.mkdir(vis_path)
+    if not os.path.exists(vis_path) : os.mkdir(vis_path)
     file_name = str(index) + ".png"
     out_path = os.path.join(vis_path, file_name)
     # Save the animation (gif)
     PIL_image.save(out_path)
+
+#-----------------------------------------------------#
+#                    Plot ROC Curve                   #
+#-----------------------------------------------------#
+def create_roc(gt, seg_list_activation, seg_names, index, path_roc):
+    # Set up the roc directory if required
+    if not os.path.exists(path_roc) : os.mkdir(path_roc)
+    # Compute ROC and plot it for each predicted segmentation
+    list_df = []
+    for i, seg in enumerate(seg_list_activation):
+        # Compute FPR & TPR on flattened matrices
+        prob = np.round(seg[:,:,1], rounding_precision)
+        fpr, tpr, _ = roc_curve(gt.flatten(), prob.flatten())
+        # Create dataframe out of it
+        df_seg = pd.DataFrame(data=[fpr, tpr], index=["fpr", "tpr"])
+        df_seg = df_seg.transpose()
+        df_seg = df_seg.apply(pd.Series.explode)
+        # Append segmentation label
+        df_seg["seg"] = seg_names[i]
+        list_df.append(df_seg)
+    # Concat dataframes together
+    df_roc = pd.concat(list_df, axis=0, ignore_index=True)
+    # Plot roc results
+    fig = (ggplot(df_roc, aes("fpr", "tpr", color="seg"))
+               + geom_line(size=2)
+               + geom_abline(intercept=0, slope=1, color="black",
+                             linetype="dashed")
+               + ggtitle("ROC Curve for Sample: " + str(index))
+               + xlab("False Positive Rate")
+               + ylab("True Positive Rate")
+               + scale_x_continuous(limits=[0, 1],
+                                    breaks=np.arange(0.0, 1.1, 0.1))
+               + scale_y_continuous(limits=[0, 1],
+                                    breaks=np.arange(0.0, 1.1, 0.1))
+               + scale_color_discrete(name="Segmentation:")
+               + theme_bw(base_size=28))
+    # Store figure to disk
+    fig.save(filename=str(index) + ".png", path=path_roc, width=12, height=10,
+             dpi=200, limitsize=False)
 
 #-----------------------------------------------------#
 #                       Sampling                      #
@@ -268,44 +311,53 @@ train, test = train_test_split(sample_list, train_size=0.8, test_size=0.2,
 dt = []
 
 # Iterate over each sample
-for index in test:
+for index in tqdm(test):
     # Access sample
     sample = data_io.sample_loader(index, load_seg=True)
     img = sample.img_data
     # Load ground truth & predictions
     gt = np.squeeze(sample.seg_data, axis=-1)
-    pd_start = data_io.interface.load_prediction(index, path_preds[0])
-    pd_first = data_io.interface.load_prediction(index, path_preds[1])
-    pd_final = data_io.interface.load_prediction(index, path_preds[2])
+    pd_start = np.load(os.path.join(path_preds[0], index + ".npy"))
+    pd_start = np.squeeze(pd_start, axis=-1)                            # Dirty fix. Unnecessary with newest MIScnn verison
+    pd_first = np.load(os.path.join(path_preds[1], index + ".npy"))
+    pd_first = np.squeeze(pd_first, axis=-1)                            # Dirty fix. Unnecessary with newest MIScnn verison
+    pd_final = np.load(os.path.join(path_preds[2], index + ".npy"))
+    pd_final = np.squeeze(pd_final, axis=-1)                            # Dirty fix. Unnecessary with newest MIScnn verison
     # Create artificial no & full annotation predictions
-    ap_no = np.full(gt.shape, 0)
-    ap_full = np.full(gt.shape, 1)
-    ap_rand = np.random.choice([0,1], (gt.shape))
+    ap_no = np.full(gt.shape+(2,), [1.0, 0.0])
+    ap_full = np.full(gt.shape+(2,), [0.0, 1.0])
+    rand_tmp = np.array([[0.0, 1.0], [1.0, 0.0]])
+    ap_rand = rand_tmp[np.random.choice(rand_tmp.shape[0], gt.shape,
+                                        replace=True)]
     # Pack segmentations to a list together
-    seg_list = [gt, ap_no, ap_full, ap_rand, pd_start, pd_first, pd_final]
-    seg_names = ["gt", "ap_no", "ap_full", "ap_rand", "pd_start", "pd_first", "pd_final"]
+    seg_list_activation = [ap_no, ap_full, ap_rand, pd_start, pd_first, pd_final]
+    seg_list_argmax = [np.argmax(x, axis=-1) for x in seg_list_activation]
+    seg_names = ["No Annotation", "Full Annotation", "Random Annotation",
+                 "Untrained Model", "1 Epoch", "Trained Model"]
+
     # Compute various scores
-    for i, seg in enumerate(seg_list[1:]):
-        dt.append([index, seg_names[i+1], "DSC", calc_DSC(gt, seg, 2)[1]])
-        dt.append([index, seg_names[i+1], "IoU", calc_IoU(gt, seg, 2)[1]])
-        dt.append([index, seg_names[i+1], "ACC", calc_Accuracy(gt, seg, 2)[1]])
-        dt.append([index, seg_names[i+1], "SPEC", calc_Specificity(gt, seg, 2)[1]])
-        dt.append([index, seg_names[i+1], "SENS", calc_Sensitivity(gt, seg, 2)[1]])
-        dt.append([index, seg_names[i+1], "PREC", calc_Precision(gt, seg, 2)[1]])
+    for i, seg in enumerate(seg_list_argmax):
+        dt.append([index, seg_names[i], "DSC", calc_DSC(gt, seg, 2)[1]])
+        dt.append([index, seg_names[i], "IoU", calc_IoU(gt, seg, 2)[1]])
+        dt.append([index, seg_names[i], "ACC", calc_Accuracy(gt, seg, 2)[1]])
+        dt.append([index, seg_names[i], "SPEC", calc_Specificity(gt, seg, 2)[1]])
+        dt.append([index, seg_names[i], "SENS", calc_Sensitivity(gt, seg, 2)[1]])
+        dt.append([index, seg_names[i], "PREC", calc_Precision(gt, seg, 2)[1]])
     # Compute visualization
-    create_visualization(img, seg_list, index, path_evaluation)
-    break
+    path_viz = os.path.join(path_evaluation, "visualizations")
+    create_visualization(img, [gt] + seg_list_argmax, index, path_viz)
+    # Plot ROC curve
+    path_roc = os.path.join(path_evaluation, "roc")
+    create_roc(gt, seg_list_activation, seg_names, index, path_roc)
 
-dt = pd.DataFrame(dt)
-print(dt)
+# Store scores as csv in evaluation directory
+dt = pd.DataFrame(dt, columns=["index", "pred", "metric", "score"])
+out_path = os.path.join(path_evaluation, "scores.csv")
+dt.to_csv(out_path, sep=",", header=True, index=False)
+
+# Plot global figures
 
 
-# REWORK EVERYTHING WITH ACTIVATION OUTPUTS instead of argmax mask values from predictions
-# In order to implement ROC curves
-
-# what to implement
-# - scores per sample in large csv
-# - large row of 6 images: Ground Truth, No Annotation, Full-Image Annotation, Untrained Model, Bad Model, Good Model
 
 
     # # Combine images
