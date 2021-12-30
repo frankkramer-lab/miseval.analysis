@@ -169,7 +169,7 @@ class IIO_interface(Abstract_IO):
             )
         # Store numpy array
         pred_file = os.path.join(output_path, str(sample.index) + ".npy")
-        numpy.save(pred_file, sample.pred_data.astype(np.uint8),
+        np.save(pred_file, sample.pred_data.astype(np.uint8),
                    allow_pickle=True)
 
     #---------------------------------------------#

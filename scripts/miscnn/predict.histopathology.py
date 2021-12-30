@@ -26,6 +26,10 @@ from miscnn import Data_IO, Preprocessor, Data_Augmentation, Neural_Network
 from miscnn.processing.subfunctions import Normalization, Resize, Padding
 from miscnn.neural_network.architecture.unet.standard import Architecture
 from miscnn.neural_network.metrics import tversky_crossentropy, dice_soft, focal_tversky_loss
+from PIL import Image
+import numpy as np
+import re
+from miscnn.data_loading.interfaces.abstract_io import Abstract_IO
 
 #-----------------------------------------------------#
 #                    Configurations                   #
@@ -166,7 +170,7 @@ class IIO_interface(Abstract_IO):
             )
         # Store numpy array
         pred_file = os.path.join(output_path, str(sample.index) + ".npy")
-        numpy.save(pred_file, sample.pred_data.astype(np.uint8),
+        np.save(pred_file, sample.pred_data.astype(np.uint8),
                    allow_pickle=True)
 
     #---------------------------------------------#
