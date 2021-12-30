@@ -33,6 +33,9 @@ import pandas as pd
 from tqdm import tqdm
 from sklearn.metrics import roc_curve
 from plotnine import *
+# Experimental
+import warnings
+warnings.filterwarnings("ignore")
 
 #-----------------------------------------------------#
 #                    Configurations                   #
@@ -273,7 +276,7 @@ def create_roc(gt, seg_list_activation, seg_names, index, path_roc):
                + geom_line(size=2)
                + geom_abline(intercept=0, slope=1, color="black",
                              linetype="dashed")
-               + ggtitle("ROC Curve for Sample: " + str(index))
+               + ggtitle("Receiver Operating Characteristic")
                + xlab("False Positive Rate")
                + ylab("True Positive Rate")
                + scale_x_continuous(limits=[0, 1],
