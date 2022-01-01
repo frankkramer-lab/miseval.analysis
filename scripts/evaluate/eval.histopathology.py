@@ -51,15 +51,15 @@ border = 8
 rounding_precision = 3
 
 # Data directory
-path_data = "data/braintumor.prepared"
+path_data = "data/histopathology.prepared"
 
 # Prediction directory
-path_results = "results/braintumor"
+path_results = "results/histopathology"
 pred_modes = ["start", "first", "final"]
 path_preds = [os.path.join(path_results, x) for x in pred_modes]
 
 # Evaluation directory
-path_evaluation = "evaluation/braintumor"
+path_evaluation = "evaluation/histopathology"
 if not os.path.exists("evaluation") : os.mkdir("evaluation")
 if not os.path.exists(path_evaluation) : os.mkdir(path_evaluation)
 
@@ -295,8 +295,6 @@ def visualize_segmentation(img, seg):
     # Add border to image
     img_rgb = rect_with_rounded_corners(img_rgb, border, border,
                                         (255, 255, 255))
-    # Rotate braintumor image via 90° clockwise
-    img_rgb = cv2.rotate(img_rgb, rotateCode=0)
     # Return visualized sample as NumPy matrix
     return img_rgb
 
@@ -434,7 +432,7 @@ dt.to_csv(out_path, sep=",", header=True, index=False)
 for metric in np.unique(dt["metric"]):
     fig = (ggplot(dt.loc[dt["metric"]==metric], aes("pred", "score", fill="pred"))
                   + geom_boxplot(show_legend=False)
-                  + ggtitle("Performance via " + metric + " on dataset: Braintumor")
+                  + ggtitle("Performance via " + metric + " on dataset: histopathology")
                   + xlab("Metric")
                   + ylab("Score")
                   + coord_flip()
