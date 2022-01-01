@@ -33,6 +33,8 @@ import pandas as pd
 from tqdm import tqdm
 from sklearn.metrics import roc_curve
 from plotnine import *
+from scipy import ndimage
+from hausdorff import hausdorff_distance as simple_hausdorff_distance
 # Experimental
 import warnings
 warnings.filterwarnings("ignore")
@@ -155,6 +157,72 @@ def calc_Precision(truth, pred, classes):
             prec_scores.append(prec)
     # Return computed precision scores
     return prec_scores
+
+def calc_Kappa(truth, pred):
+    # Compute confusion matrix
+    gt = np.equal(truth, 1)
+    pd = np.equal(pred, 1)
+    not_gt = np.logical_not(np.equal(truth, 1))
+    not_pd = np.logical_not(np.equal(pred, 1))
+    tp = np.logical_and(pd, gt).sum()
+    tn = np.logical_and(not_pd, not_gt).sum()
+    fp = np.logical_and(pd, not_gt).sum()
+    fn = np.logical_and(not_pd, gt).sum()
+    # Compute kappa
+    fa = tp + tn
+    fc = ((tn+fn)*(tn+fp) + (fp+tp)*(fn+tp)) / gt.size
+    kappa = (fa-fc) / (gt.size-fc)
+    # Return computed kappa score
+    return kappa
+
+def border_map(binary_img,neigh):
+    """
+    Creates the border for a 3D image
+    """
+    binary_map = np.asarray(binary_img, dtype=np.uint8)
+    neigh = neigh
+    west = ndimage.shift(binary_map, [-1, 0], order=0)
+    east = ndimage.shift(binary_map, [1, 0], order=0)
+    north = ndimage.shift(binary_map, [0, 1], order=0)
+    south = ndimage.shift(binary_map, [0, -1], order=0)
+    cumulative = west + east + north + south
+    border = ((cumulative < 4) * binary_map) == 1
+    return border
+
+def border_distance(ref,seg):
+    """
+    This functions determines the map of distance from the borders of the
+    segmentation and the reference and the border maps themselves
+    """
+    neigh=8
+    border_ref = border_map(ref,neigh)
+    border_seg = border_map(seg,neigh)
+    oppose_ref = 1 - ref
+    oppose_seg = 1 - seg
+    # euclidean distance transform
+    distance_ref = ndimage.distance_transform_edt(oppose_ref)
+    distance_seg = ndimage.distance_transform_edt(oppose_seg)
+    distance_border_seg = border_ref * distance_seg
+    distance_border_ref = border_seg * distance_ref
+    return distance_border_ref, distance_border_seg#, border_ref, border_seg
+
+# Source: https://link.springer.com/chapter/10.1007/978-3-030-11726-9_4
+# Implementation: https://github.com/Issam28/Brain-tumor-segmentation
+def calc_AveragedHausdorff(ref, seg):
+    """
+    This functions calculates the average symmetric distance and the
+    hausdorff distance between a segmentation and a reference image
+    :return: hausdorff distance and average symmetric distance
+    """
+    ref_border_dist, seg_border_dist = border_distance(ref,seg)
+    hausdorff_distance = np.max(
+        [np.max(ref_border_dist), np.max(seg_border_dist)])
+    return hausdorff_distance
+
+# Source: https://ieeexplore.ieee.org/document/7053955
+# Implementation: https://github.com/mavillan/py-hausdorff
+def calc_SimpleHausdorff(truth, pred):
+    return simple_hausdorff_distance(truth, pred, distance="euclidean")
 
 #-----------------------------------------------------#
 #                    Visualization                    #
@@ -346,6 +414,10 @@ for index in tqdm(test):
         dt.append([index, seg_names[i], "SPEC", calc_Specificity(gt, seg, 2)[1]])
         dt.append([index, seg_names[i], "SENS", calc_Sensitivity(gt, seg, 2)[1]])
         dt.append([index, seg_names[i], "PREC", calc_Precision(gt, seg, 2)[1]])
+        dt.append([index, seg_names[i], "KAP", calc_Kappa(gt, seg)])
+        dt.append([index, seg_names[i], "SHD", calc_SimpleHausdorff(gt, seg)])
+        dt.append([index, seg_names[i], "AHD", calc_AveragedHausdorff(gt, seg)])
+
     # Compute visualization
     path_viz = os.path.join(path_evaluation, "visualizations")
     create_visualization(img, [gt] + seg_list_argmax, index, path_viz)
@@ -360,18 +432,16 @@ dt = pd.DataFrame(dt, columns=["index", "pred", "metric", "score"])
 out_path = os.path.join(path_evaluation, "scores.csv")
 dt.to_csv(out_path, sep=",", header=True, index=False)
 
-##### to-do
-# Add distance score
-# kick out start pred?
-
+for metric in np.unique(dt["metric"]):
+    print(metric)
 fig = (ggplot(dt, aes("pred", "score", fill="pred"))
               + geom_boxplot(show_legend=False)
               + ggtitle("Performance on dataset: Braintumor")
-              + facet_wrap("metric")
+              + facet_wrap("metric", scales="free")
               + xlab("Metric")
               + ylab("Score")
               + coord_flip()
-              + scale_y_continuous(limits=[0, 1], breaks=np.arange(0.0,1.1,0.1))
+             # + scale_y_continuous(limits=[0, 1], breaks=np.arange(0.0,1.1,0.1))
               + scale_fill_discrete(name="Classification")
               + theme_bw(base_size=28))
 # Store figure to disk
