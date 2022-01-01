@@ -432,18 +432,17 @@ dt = pd.DataFrame(dt, columns=["index", "pred", "metric", "score"])
 out_path = os.path.join(path_evaluation, "scores.csv")
 dt.to_csv(out_path, sep=",", header=True, index=False)
 
+# Plot performance for each metric
 for metric in np.unique(dt["metric"]):
-    print(metric)
-fig = (ggplot(dt, aes("pred", "score", fill="pred"))
-              + geom_boxplot(show_legend=False)
-              + ggtitle("Performance on dataset: Braintumor")
-              + facet_wrap("metric", scales="free")
-              + xlab("Metric")
-              + ylab("Score")
-              + coord_flip()
-             # + scale_y_continuous(limits=[0, 1], breaks=np.arange(0.0,1.1,0.1))
-              + scale_fill_discrete(name="Classification")
-              + theme_bw(base_size=28))
-# Store figure to disk
-fig.save(filename="performance.png", path=path_evaluation,
-         width=24, height=10, dpi=180)
+    fig = (ggplot(dt.loc[dt["metric"]==metric], aes("pred", "score", fill="pred"))
+                  + geom_boxplot(show_legend=False)
+                  + ggtitle("Performance via " + metric + " on dataset: Braintumor")
+                  + xlab("Metric")
+                  + ylab("Score")
+                  + coord_flip()
+                 # + scale_y_continuous(limits=[0, 1], breaks=np.arange(0.0,1.1,0.1))
+                  + scale_fill_discrete(name="Classification")
+                  + theme_bw(base_size=28))
+    # Store figure to disk
+    fig.save(filename="performance." + metric + ".png", path=path_evaluation,
+             width=24, height=10, dpi=180)
