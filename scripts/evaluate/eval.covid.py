@@ -48,7 +48,7 @@ gap = 8
 border = 8
 
 # ROC curves
-rounding_precision = 3
+rounding_precision = 8
 
 # Data directory
 path_data = "data/covid.prepared"
