@@ -31,7 +31,7 @@ from PIL import Image
 import cv2
 import pandas as pd
 from tqdm import tqdm
-from sklearn.metrics import roc_curve
+from sklearn.metrics import roc_curve, roc_auc_score
 from plotnine import *
 from scipy import ndimage
 from hausdorff import hausdorff_distance as simple_hausdorff_distance
@@ -157,6 +157,17 @@ def calc_Precision(truth, pred, classes):
             prec_scores.append(prec)
     # Return computed precision scores
     return prec_scores
+
+def calc_AUC(truth, pred, classes):
+    auc_scores = []
+    # Iterate over each class
+    for i in range(classes):
+        prob = np.round(pred[:,:,i], rounding_precision)
+        gt = np.equal(truth, i).astype(int)
+        auc = roc_auc_score(gt.flatten(), prob.flatten())
+        auc_scores.append(auc)
+    # Return computed AUC scores
+    return auc_scores
 
 def calc_Kappa(truth, pred):
     # Compute confusion matrix
@@ -411,10 +422,12 @@ for index in tqdm(test):
         dt.append([index, seg_names[i], "ACC", calc_Accuracy(gt, seg, 2)[1]])
         dt.append([index, seg_names[i], "SPEC", calc_Specificity(gt, seg, 2)[1]])
         dt.append([index, seg_names[i], "SENS", calc_Sensitivity(gt, seg, 2)[1]])
-        dt.append([index, seg_names[i], "PREC", calc_Precision(gt, seg, 2)[1]])
+        # dt.append([index, seg_names[i], "PREC", calc_Precision(gt, seg, 2)[1]])
         dt.append([index, seg_names[i], "KAP", calc_Kappa(gt, seg)])
-        dt.append([index, seg_names[i], "SHD", calc_SimpleHausdorff(gt, seg)])
+        # dt.append([index, seg_names[i], "SHD", calc_SimpleHausdorff(gt, seg)])
         dt.append([index, seg_names[i], "AHD", calc_AveragedHausdorff(gt, seg)])
+    for i, seg in enumerate(seg_list_activation):
+        dt.append([index, seg_names[i], "AUC", calc_AUC(gt, seg, 2)[1]])
 
     # Compute visualization
     path_viz = os.path.join(path_evaluation, "visualizations")
@@ -432,7 +445,7 @@ dt.to_csv(out_path, sep=",", header=True, index=False)
 for metric in np.unique(dt["metric"]):
     fig = (ggplot(dt.loc[dt["metric"]==metric], aes("pred", "score", fill="pred"))
                   + geom_boxplot(show_legend=False)
-                  + ggtitle("Performance via " + metric + " on dataset: histopathology")
+                  + ggtitle("Performance via " + metric + " on dataset: Histopathology")
                   + xlab("Metric")
                   + ylab("Score")
                   + coord_flip()

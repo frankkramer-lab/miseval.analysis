@@ -31,7 +31,7 @@ from PIL import Image
 import cv2
 import pandas as pd
 from tqdm import tqdm
-from sklearn.metrics import roc_curve
+from sklearn.metrics import roc_curve, roc_auc_score
 from plotnine import *
 from scipy import ndimage
 from hausdorff import hausdorff_distance as simple_hausdorff_distance
@@ -157,6 +157,20 @@ def calc_Precision(truth, pred, classes):
             prec_scores.append(prec)
     # Return computed precision scores
     return prec_scores
+
+def calc_AUC(truth, pred, classes):
+    auc_scores = []
+    # Iterate over each class
+    for i in range(classes):
+        prob = np.round(pred[:,:,i], rounding_precision)
+        gt = np.equal(truth, i).astype(int)
+        if len(np.unique(gt)) == 1:
+            auc_scores.append(0.5)
+            continue
+        auc = roc_auc_score(gt.flatten(), prob.flatten())
+        auc_scores.append(auc)
+    # Return computed AUC scores
+    return auc_scores
 
 def calc_Kappa(truth, pred, classes):
     kappa_scores = []
@@ -431,13 +445,14 @@ for index in tqdm(test):
         acc = calc_Accuracy(gt, seg, 3)
         spec = calc_Specificity(gt, seg, 3)
         sens = calc_Sensitivity(gt, seg, 3)
-        prec = calc_Precision(gt, seg, 3)
+        # prec = calc_Precision(gt, seg, 3)
+        auc = calc_AUC(gt, seg_list_activation[i], 3)
         kappa = calc_Kappa(gt, seg, 3)
-        shd = calc_SimpleHausdorff(gt, seg, 3)
+        # shd = calc_SimpleHausdorff(gt, seg, 3)
         ahd = calc_AveragedHausdorff(gt, seg, 3)
-        metrics = [dsc, iou, acc, spec, sens, prec, kappa, shd, ahd]
-        metrics_label = ["DSC", "IoU", "ACC", "SPEC", "SENS", "PREC", "KAP",
-                         "SHD", "AHD"]
+
+        metrics = [dsc, iou, acc, spec, sens, auc, kappa, ahd]
+        metrics_label = ["DSC", "IoU", "ACC", "SPEC", "SENS", "AUC", "KAP", "AHD"]
         # Append to result dataframe
         for m, metric in enumerate(metrics):
             for c, cl in enumerate(class_labels):
@@ -459,7 +474,7 @@ for metric in np.unique(dt["metric"]):
     fig = (ggplot(dt.loc[dt["metric"]==metric], aes("pred", "score", fill="pred"))
                   + geom_boxplot(show_legend=False)
                   + facet_wrap("class")
-                  + ggtitle("Performance via " + metric + " on dataset: Braintumor")
+                  + ggtitle("Performance via " + metric + " on dataset: COVID")
                   + xlab("Metric")
                   + ylab("Score")
                   + coord_flip()
