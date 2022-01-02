@@ -386,8 +386,8 @@ for index in tqdm(test):
     img = sample.img_data
     # Load ground truth & predictions
     gt = np.squeeze(sample.seg_data, axis=-1)
-    pd_start = np.load(os.path.join(path_preds[0], index + ".npy"))
-    pd_start = np.squeeze(pd_start, axis=-1)                            # Dirty fix. Unnecessary with newest MIScnn verison
+    # pd_start = np.load(os.path.join(path_preds[0], index + ".npy"))
+    # pd_start = np.squeeze(pd_start, axis=-1)                            # Dirty fix. Unnecessary with newest MIScnn verison
     pd_first = np.load(os.path.join(path_preds[1], index + ".npy"))
     pd_first = np.squeeze(pd_first, axis=-1)                            # Dirty fix. Unnecessary with newest MIScnn verison
     pd_final = np.load(os.path.join(path_preds[2], index + ".npy"))
@@ -399,10 +399,10 @@ for index in tqdm(test):
     ap_rand = rand_tmp[np.random.choice(rand_tmp.shape[0], gt.shape,
                                         replace=True)]
     # Pack segmentations to a list together
-    seg_list_activation = [ap_no, ap_full, ap_rand, pd_start, pd_first, pd_final]
+    seg_list_activation = [ap_no, ap_full, ap_rand, pd_first, pd_final]
     seg_list_argmax = [np.argmax(x, axis=-1) for x in seg_list_activation]
     seg_names = ["No Annotation", "Full Annotation", "Random Annotation",
-                 "Untrained Model", "1 Epoch", "Trained Model"]
+                 "Untrained Model", "Trained Model"]
 
     # Compute various scores
     for i, seg in enumerate(seg_list_argmax):
