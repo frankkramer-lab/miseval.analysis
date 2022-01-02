@@ -1,0 +1,9 @@
+miscnn==1.3.0
+numpy==1.19.2
+pandas==1.1.4
+tensorflow==2.7.0
+tensorflow-addons==0.15.0
+pillow==8.3.2
+tqdm==4.51.0
+hausdorff
+skimage
