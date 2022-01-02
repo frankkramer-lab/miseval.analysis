@@ -7,3 +7,5 @@ pillow==8.3.2
 tqdm==4.51.0
 hausdorff
 skimage
+opencv-python
+plotnine
