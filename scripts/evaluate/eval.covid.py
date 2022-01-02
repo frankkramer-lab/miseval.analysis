@@ -348,7 +348,8 @@ def create_roc(gt, seg_list_activation, seg_names, classes, index, path_roc):
         for c, label in enumerate(classes):
             # Compute FPR & TPR on flattened matrices
             prob = np.round(seg[:,:,c], rounding_precision)
-            fpr, tpr, _ = roc_curve(gt.flatten(), prob.flatten())
+            truth = np.equal(gt, c).astype(int)
+            fpr, tpr, _ = roc_curve(truth.flatten(), prob.flatten())
             # Create dataframe out of it
             df_seg = pd.DataFrame(data=[label, fpr, tpr], index=["class", "fpr", "tpr"])
             df_seg = df_seg.transpose()
@@ -417,9 +418,9 @@ for index in tqdm(test):
     pd_final = np.load(os.path.join(path_preds[2], index + ".npy"))
     pd_final = np.squeeze(pd_final, axis=-1)                            # Dirty fix. Unnecessary with newest MIScnn verison
     # Pack segmentations to a list together
-    seg_list_activation = [pd_start, pd_final]
+    seg_list_activation = [pd_start, pd_first, pd_final]
     seg_list_argmax = [np.argmax(x, axis=-1) for x in seg_list_activation]
-    seg_names = ["untrained", "trained"]
+    seg_names = ["untrained", "first", "trained"]
     # Define class labels
     class_labels = ["background", "lungs", "covid"]
 
