@@ -6,6 +6,6 @@ tensorflow-addons==0.15.0
 pillow==8.3.2
 tqdm==4.51.0
 hausdorff
-skimage
+scikit-image
 opencv-python
 plotnine
