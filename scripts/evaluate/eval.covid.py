@@ -444,9 +444,9 @@ for index in tqdm(test):
     # Pack segmentations to a list together
     seg_list_activation = [pd_first, pd_final]
     seg_list_argmax = [np.argmax(x, axis=-1) for x in seg_list_activation]
-    seg_names = ["untrained", "trained"]
+    seg_names = ["Untrained", "Trained"]
     # Define class labels
-    class_labels = ["background", "lungs", "covid"]
+    class_labels = ["Background", "Lungs", "COVID-19"]
 
     # Compute various scores
     for i, seg in enumerate(seg_list_argmax):

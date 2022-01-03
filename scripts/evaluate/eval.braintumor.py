@@ -366,7 +366,7 @@ def create_roc(gt, seg_list_activation, seg_names, index, path_roc):
                + theme_bw(base_size=42)
                + guides(color=guide_legend(override_aes={"size":2.0}))
                + theme(axis_text_x=element_text(angle=-90, vjust=1, hjust=-1),
-                       legend_position=(0.72, 0.26),
+                       legend_position=(0.73, 0.26),
                        legend_key_size=24,
                        legend_background=element_rect(fill="lightblue",
                                                       size=0.5, alpha=0.85,
@@ -423,7 +423,7 @@ for index in tqdm(test):
     # Pack segmentations to a list together
     seg_list_activation = [ap_no, ap_full, ap_rand, pd_first, pd_final]
     seg_list_argmax = [np.argmax(x, axis=-1) for x in seg_list_activation]
-    seg_names = ["No Annotation", "Full Annotation", "Random Annotation",
+    seg_names = ["No Segmentation", "Full Segmentation", "Random Seg.",
                  "Untrained Model", "Trained Model"]
 
     # Compute various scores
