@@ -377,9 +377,9 @@ def create_roc(gt, seg_list_activation, seg_names, classes, index, path_roc):
     df_roc["tpr"] = pd.to_numeric(df_roc["tpr"])
     # Plot roc results
     fig = (ggplot(df_roc, aes("fpr", "tpr", color="class", linetype="seg"))
-               + geom_line(size=2)
+               + geom_line(size=3)
                + geom_abline(intercept=0, slope=1, color="black",
-                             linetype="dashed")
+                             linetype="dashed", size=2)
                + ggtitle("Receiver Operating Characteristic")
                + xlab("False Positive Rate")
                + ylab("True Positive Rate")
@@ -389,10 +389,20 @@ def create_roc(gt, seg_list_activation, seg_names, classes, index, path_roc):
                                     breaks=np.arange(0.0, 1.1, 0.1))
                + scale_color_discrete(name="Classification:")
                + scale_linetype_discrete(name="Segmentation:")
-               + theme_bw(base_size=28))
+               + theme_bw(base_size=42)
+               + guides(color=guide_legend(override_aes={"size":2.0}),
+                        linetype=guide_legend(override_aes={"size":1.0}))
+               + theme(axis_text_x=element_text(angle=-90, vjust=1, hjust=-1),
+                       legend_position=(0.773, 0.29),
+                       legend_key_size=24,
+                       legend_background=element_rect(fill="lightblue",
+                                                      size=0.5, alpha=0.85,
+                                                      linetype="solid"),
+                       legend_title=element_text(size=24),
+                       legend_text=element_text(size=24)))
     # Store figure to disk
     fig.save(filename=str(index) + ".png", path=path_roc, width=12, height=10,
-             dpi=200, limitsize=False)
+             dpi=300, limitsize=False)
 
 #-----------------------------------------------------#
 #                       Sampling                      #
