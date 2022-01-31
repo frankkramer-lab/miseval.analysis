@@ -10,6 +10,20 @@ In the last decade, research on artificial intelligence has seen rapid growth wi
 
 The models, predictions, and evaluation (scores, figures) are available under the following link: https://doi.org/10.5281/zenodo.5877797
 
+#### Guideline on Evaluation Metrics for Medical Image Segmentation
+
+1. Use DSC as main metric for validation and performance interpretation.
+2. Use AHD for interpretation on point position sensitivity (contour) if needed.
+3. Avoid any interpretations based on high pixel accuracy scores.
+4. Provide next to DSC also IoU, Sensitivity, and Specificity for method comparability.
+5. Provide sample visualizations, comparing the annotated and predicted segmentation, for visual evaluation as well as to avoid statistical bias.
+6. Avoid cherry-picking high-scoring samples.
+7. Provide histograms or box plots showing the scoring distribution across the dataset.
+8. For multi-class problems, provide metric computations for each class individually.
+9. Avoid confirmation bias through macro-averaging classes which is pushing scores via background class inclusion.
+10. Provide access to evaluation scripts and results with journal data services or third-party services like GitHub and Zenodo for easier reproducibility.
+
+
 ## Reproducibility
 
 **Requirements:**
