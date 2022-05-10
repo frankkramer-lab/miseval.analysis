@@ -34,7 +34,7 @@ import numpy as np
 #-----------------------------------------------------#
 #                    Configurations                   #
 #-----------------------------------------------------#
-os.environ["CUDA_VISIBLE_DEVICES"] = str(1)
+os.environ["CUDA_VISIBLE_DEVICES"] = str(0)
 
 # Data directory
 path_data = "data/isic.prepared"
