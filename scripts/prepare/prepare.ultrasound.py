@@ -48,8 +48,6 @@ for class_dir in ["benign", "malignant", "normal"]:
         if "mask" in file : continue
         index = file.split(".")[0]
 
-        print(file, index)
-
         # Create sample dir in solution
         path_sample = os.path.join(path_ds + ".prepared", index)
         if not os.path.exists(path_sample) : os.mkdir(path_sample)
@@ -85,6 +83,7 @@ for class_dir in ["benign", "malignant", "normal"]:
         # Merge masks together
         mask = np.stack(seg_res, axis=0)
         mask = np.sum(mask, axis=0)
+        mask = np.where(mask>=1, 1, mask)
         # Store mask
         pillow_seg = Image.fromarray(mask.astype(np.uint8))
         pillow_seg.save(os.path.join(path_sample, "segmentation.png"))

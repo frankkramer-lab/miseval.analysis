@@ -34,18 +34,18 @@ import numpy as np
 #-----------------------------------------------------#
 #                    Configurations                   #
 #-----------------------------------------------------#
-os.environ["CUDA_VISIBLE_DEVICES"] = str(0)
+os.environ["CUDA_VISIBLE_DEVICES"] = str(2)
 
 # Data directory
-path_data = "data/isic.prepared"
+path_data = "data/ultrasound.prepared"
 
 # model directory
-path_models = "models/isic"
+path_models = "models/ultrasound"
 if not os.path.exists("models") : os.mkdir("models")
 if not os.path.exists(path_models) : os.mkdir(path_models)
 
 # prediction directory
-path_results = "results/isic"
+path_results = "results/ultrasound"
 if not os.path.exists("results") : os.mkdir("results")
 if not os.path.exists(path_results) : os.mkdir(path_results)
 
@@ -76,47 +76,18 @@ data_aug = Data_Augmentation(cycles=1, scaling=True, rotations=True,
                              brightness=True, contrast=True, gamma=True,
                              gaussian_noise=True)
 
-
-from miscnn.processing.subfunctions.abstract_subfunction import Abstract_Subfunction
-
-class ChangeValues(Abstract_Subfunction):
-   #---------------------------------------------#
-   #                Initialization               #
-   #---------------------------------------------#
-  def __init__(self, val_to_change, change_in):
-    self.val_to_change = val_to_change
-    self.change_in = change_in
-    #---------------------------------------------#
-    #                Preprocessing                #
-    #---------------------------------------------#
-  def preprocessing(self, sample, training=True):
-    seg_temp = sample.seg_data
-    if(sample.seg_data is not None):
-      sample.seg_data = np.where(seg_temp == self.val_to_change, self.change_in, seg_temp)
-    #---------------------------------------------#
-    #               Postprocessing                #
-    #---------------------------------------------#
-  def postprocessing(self, sample, prediction):
-    pred = prediction
-    if prediction is not None:
-      prediction = np.where(pred == self.change_in, self.val_to_change, pred)
-    return prediction
-
 # Create a resize Subfunction to resolution 512x512
-sf_resize = Resize((192, 256))
+sf_resize = Resize((512, 512))
 # Create a pixel value normalization Subfunction for z-score scaling
 sf_zscore = Normalization(mode="z-score")
-# Create a pixel value changing subfunction
-sf_change = ChangeValues(val_to_change=255, change_in=1)
 
 # Assemble Subfunction classes into a list
-sf = [sf_resize, sf_change, sf_zscore]
+sf = [sf_resize, sf_zscore]
 
 # Create and configure the Preprocessor class
 pp = Preprocessor(data_io, data_aug=data_aug, batch_size=24, subfunctions=sf,
                   prepare_subfunctions=True, prepare_batches=False,
-                  analysis="fullimage", use_multiprocessing=True)
-pp.mp_threads = 10
+                  analysis="fullimage")
 
 # Initialize the Architecture
 unet_standard = Architecture(depth=4, activation="softmax",
